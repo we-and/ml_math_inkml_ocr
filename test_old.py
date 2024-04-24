@@ -163,11 +163,6 @@ print("-------------- FIT -----------------------------")
 history = model.fit(inputs, labels, epochs=10, batch_size=64, validation_split=0.2)
 model.save("model.h5")
 
-max_len = max(len(trace) for traces in all_data for trace in traces[0])
-import json
-with open('model_config.json', 'w') as f:
-    json.dump({'max_len': max_len}, f)
-
 
 
 import matplotlib.pyplot as plt
