@@ -108,13 +108,21 @@ def normalize_and_pad_traces(all_data):
         padded_traces = pad_sequences(normalized_traces, maxlen=max_len, padding='post', dtype='float32')
         padded_data.append((padded_traces, label))
     return padded_data
-# Assuming labels are categorical and need to be encoded
+
+
 def encode_labels(padded_data):
     labels = [label for _, label in padded_data]
     encoder = LabelEncoder()
     encoded_labels = encoder.fit_transform(labels)
-    categorical_labels = to_categorical(encoded_labels)
-    return np.array([data[0] for data in padded_data], dtype=object), categorical_labels, encoder
+
+    # Flatten the nested sequences
+    inputs = [trace for traces, _ in padded_data for trace in traces]
+    flattened_labels = [encoded_labels[i] for i, (traces, _) in enumerate(padded_data) for _ in range(len(traces))]
+
+    categorical_labels = to_categorical(flattened_labels)
+    
+    return np.array(inputs), np.array(categorical_labels), encoder
+
 print("-------------------------------------------")
 print("-------------- PRENORM -----------------------------")
 
