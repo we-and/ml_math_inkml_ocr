@@ -32,7 +32,6 @@ def preprocess_inkml(content):
 #corrected_content = preprocess_inkml(inkml_content)
 
 
-print("------------------ READ FOLDER -------------------------")
 def parse_inkml(inkml_path):
     ns = {'inkml': 'http://www.w3.org/2003/InkML'}
     try:
@@ -83,7 +82,10 @@ all_data = read_folder_of_inkml(folder_path)
 for index, (strokes, label) in enumerate(all_data):
     print(f"Data from file {index}: Label = {label}, Number of strokes = {len(strokes)}")
 
-
+print("-------------------------------------------")
+print("-------------------------------------------")
+print("-------------------------------------------")
+print("-------------------------------------------")
 import numpy as np
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from sklearn.preprocessing import LabelEncoder
@@ -121,7 +123,7 @@ def encode_labels(padded_data):
     
     return np.array(inputs), np.array(categorical_labels), encoder
 
-print("-------------- NOMALIZE  -----------------------------")
+print("-------------- PRENORM -----------------------------")
 
 padded_data = normalize_and_pad_traces(all_data)
 print("-------------- ENCODE -----------------------------")
@@ -160,41 +162,36 @@ model.summary()
 
 print("-------------- FIT -----------------------------")
 
-history = model.fit(inputs, labels, epochs=10, batch_size=64, validation_split=0.2)
-model.save("model.h5")
+model.fit(inputs, labels, epochs=10, batch_size=64, validation_split=0.2)
 
-
-
-import matplotlib.pyplot as plt
-print("-------------- PLOT HISTORY -----------------------------")
-
-# Plot training & validation accuracy
-plt.figure(figsize=(10, 5))
-plt.plot(history.history['accuracy'], label='Train accuracy')
-plt.plot(history.history['val_accuracy'], label='Validation accuracy')
-plt.title('Model accuracy by Epoch')
-plt.ylabel('Accuracy')
-plt.xlabel('Epoch')
-plt.legend(loc='upper left')
-plt.grid(True)
-plt.savefig('model_accuracy.png')  # Save the figure
-plt.show()
-
-
-# Plot training & validation loss values
-plt.figure(figsize=(10, 5))
-plt.plot(history.history['loss'], label='Train Loss')
-plt.plot(history.history['val_loss'], label='Validation Loss')
-plt.title('Model Loss by Epoch')
-plt.ylabel('Loss')
-plt.xlabel('Epoch')
-plt.legend(loc='upper right')
-plt.grid(True)
-plt.savefig('model_loss.png')  # Save the figure
-plt.show()
+def read_test_data(folder_path):
+    test_data = []
+    for filename in os.listdir(folder_path):
+        if filename.endswith('.inkml'):
+            file_path = os.path.join(folder_path, filename)
+            strokes, _ = parse_inkml(file_path)  # Assuming you have the parse_inkml function defined
+            test_data.append(strokes)
+    
+    # Normalize and pad the test data
+    test_inputs = normalize_and_pad_traces([(strokes, None) for strokes in test_data])
+    test_inputs = [data[0] for data in test_inputs]
+    
+    # Pad the test inputs to have a uniform shape
+    max_len = max(len(seq) for seq in test_inputs)
+    test_inputs = pad_sequences(test_inputs, maxlen=max_len, padding='post', dtype='float32')
+    
+    return test_inputs
 
 test_folder_path = 'test_inputs'
 #all_test_data = read_folder_of_inkml(test_folder_path)
 print("-------------- TEST -----------------------------")
 
-    
+test_inputs = read_test_data(test_folder_path)
+
+# Evaluate the model on the test inputs
+test_loss, test_accuracy = model.evaluate(test_inputs)
+print(f"Test Loss: {test_loss}, Test Accuracy: {test_accuracy}")
+
+# Evaluate the model on the test set if you have separated some data for testing
+#test_loss, test_accuracy = model.evaluate(test_inputs, test_labels)
+#print(f"Test Accuracy: {test_accuracy}")
