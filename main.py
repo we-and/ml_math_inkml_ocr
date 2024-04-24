@@ -4,6 +4,46 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout
 
+
+from lxml import etree
+import numpy as np
+
+def parse_inkml(inkml_path):
+    tree = etree.parse(inkml_path)
+    namespaces = {'inkml': 'http://www.w3.org/2003/InkML'}
+    
+    traces = []
+    for trace in tree.xpath('//inkml:trace', namespaces=namespaces):
+        points = []
+        for point in trace.text.strip().split(','):
+            x, y = point.strip().split(' ')
+            points.append((float(x), float(y)))
+        traces.append(points)
+    
+    return traces
+
+# Example usage
+inkml_path = 'path_to_your_inkml_file.inkml'
+strokes = parse_inkml(inkml_path)
+
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+
+# Normalize and pad stroke data
+def normalize_and_pad(strokes):
+    # Flatten the list of strokes and normalize
+    all_points = np.concatenate(strokes, axis=0)
+    min_vals = all_points.min(axis=0)
+    max_vals = all_points.max(axis=0)
+    normalized_strokes = [(np.array(stroke) - min_vals) / (max_vals - min_vals) for stroke in strokes]
+    
+    # Pad sequences for uniform input size
+    padded_strokes = pad_sequences(normalized_strokes, padding='post', dtype='float32')
+    return padded_strokes
+
+padded_strokes = normalize_and_pad(strokes)
+
+
+
 # Mock function to load your data
 def load_data():
     # This function should return your stroke data and labels
