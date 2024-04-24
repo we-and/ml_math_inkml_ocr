@@ -3,19 +3,29 @@ import numpy as np
 import os
 import re
 def preprocess_inkml(content):
-    # This pattern matches xml:id attributes that contain any non-NCName-valid characters
+    used_ids = set()  # To track used IDs to avoid duplicates
+
     def replace_invalid_chars(match):
         original_id = match.group(1)
-        # Replace invalid characters with underscores and ensure it starts with a letter or underscore
+        # Normalize the ID by replacing invalid characters with underscores
         valid_id = re.sub(r'[^a-zA-Z0-9_.-]', '_', original_id)
+        # Ensure it starts with a valid character
         if not valid_id[0].isalpha():
-            valid_id = f"_{valid_id}"
+            valid_id = f"id_{valid_id}"
+
+        # Ensure uniqueness of the ID
+        original_valid_id = valid_id
+        count = 1
+        while valid_id in used_ids:
+            valid_id = f"{original_valid_id}_{count}"
+            count += 1
+        used_ids.add(valid_id)
+        
         return f'xml:id="{valid_id}"'
 
     pattern = re.compile(r'xml:id="([^"]+)"')
     corrected_content = pattern.sub(replace_invalid_chars, content)
     return corrected_content
-
 # Example usage:
 # Suppose 'inkml_content' is your loaded InkML content as a string
 #inkml_content = """<ink xmlns="http://www.w3.org/2003/InkML">... your XML data here ...</ink>"""
@@ -76,22 +86,45 @@ print("-------------------------------------------")
 print("-------------------------------------------")
 print("-------------------------------------------")
 print("-------------------------------------------")
-
+import numpy as np
 from tensorflow.keras.preprocessing.sequence import pad_sequences
+from sklearn.preprocessing import LabelEncoder
+from tensorflow.keras.utils import to_categorical
 
-def preprocess_strokes(strokes):
-    # Normalize strokes to [0, 1] range
-    flat_strokes = np.concatenate(strokes)
-    min_vals = flat_strokes.min(0)
-    max_vals = flat_strokes.max(0)
-    normalized_strokes = [(stroke - min_vals) / (max_vals - min_vals) for stroke in strokes]
 
-    # Pad sequences to the same length
-    padded_strokes = pad_sequences(normalized_strokes, padding='post', dtype='float32')
-    return padded_strokes
+def normalize_and_pad_traces(all_data):
+    # Normalize each stroke sequence and pad data to the maximum sequence length in the batch
+    all_traces = [item for sublist in [data[0] for data in all_data] for item in sublist]  # flatten all traces
+    all_points = np.concatenate(all_traces, axis=0)
+    min_vals = np.min(all_points, axis=0)
+    max_vals = np.max(all_points, axis=0)
 
-padded_strokes = preprocess_strokes(strokes)
+    # Determine the maximum length of any trace sequence for uniform padding
+    max_len = max(len(trace) for traces in all_data for trace in traces[0])
 
+    padded_data = []
+    for traces, label in all_data:
+        normalized_traces = [(trace - min_vals) / (max_vals - min_vals) for trace in traces]
+        padded_traces = pad_sequences(normalized_traces, maxlen=max_len, padding='post', dtype='float32')
+        padded_data.append((padded_traces, label))
+    return padded_data
+# Assuming labels are categorical and need to be encoded
+def encode_labels(padded_data):
+    labels = [label for _, label in padded_data]
+    encoder = LabelEncoder()
+    encoded_labels = encoder.fit_transform(labels)
+    categorical_labels = to_categorical(encoded_labels)
+    return np.array([data[0] for data in padded_data], dtype=object), categorical_labels, encoder
+print("-------------------------------------------")
+print("-------------- PRENORM -----------------------------")
+
+padded_data = normalize_and_pad_traces(all_data)
+print("-------------------------------------------")
+print("-------------- ENCODE -----------------------------")
+
+inputs, labels, label_encoder = encode_labels(padded_data)
+print("-------------------------------------------")
+print("-------------- TRAIN -----------------------------")
 
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout
@@ -108,14 +141,22 @@ def build_model(input_shape, num_classes):
     model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
     return model
 
-# Assuming num_classes is the number of different characters/symbols in the dataset
-num_classes = 100  # This needs to be set to the actual number of classes
-model = build_model((None, 2), num_classes)
+def get_input_shape(inputs):
+    max_len = max(len(seq) for seq in inputs)
+    max_features = max(len(seq[0]) for seq in inputs)
+    return (max_len, max_features)
+
+print(inputs)
+# Get the input shape from the first input sample and the number of classes from the labels
+input_shape = get_input_shape(inputs)
+num_classes = labels.shape[1]
+
+model = build_model(input_shape, num_classes)
+model.summary()
+
+model.fit(inputs, labels, epochs=10, batch_size=64, validation_split=0.2)
 
 
-from tensorflow.keras.utils import to_categorical
-
-# Assuming `labels` are integer-encoded
-labels_categorical = to_categorical(labels, num_classes=num_classes)
-model.fit(padded_strokes, labels_categorical, epochs=10, validation_split=0.2)
-
+# Evaluate the model on the test set if you have separated some data for testing
+test_loss, test_accuracy = model.evaluate(test_inputs, test_labels)
+print(f"Test Accuracy: {test_accuracy}")
