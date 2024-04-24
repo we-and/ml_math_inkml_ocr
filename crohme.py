@@ -123,15 +123,12 @@ def encode_labels(padded_data):
     
     return np.array(inputs), np.array(categorical_labels), encoder
 
-print("-------------------------------------------")
 print("-------------- PRENORM -----------------------------")
 
 padded_data = normalize_and_pad_traces(all_data)
-print("-------------------------------------------")
 print("-------------- ENCODE -----------------------------")
 
 inputs, labels, label_encoder = encode_labels(padded_data)
-print("-------------------------------------------")
 print("-------------- TRAIN -----------------------------")
 
 from tensorflow.keras.models import Sequential
@@ -154,7 +151,8 @@ def get_input_shape(inputs):
     max_features = max(len(seq[0]) for seq in inputs)
     return (max_len, max_features)
 
-print(inputs)
+print("-------------- BUILD MODEL -----------------------------")
+
 # Get the input shape from the first input sample and the number of classes from the labels
 input_shape = get_input_shape(inputs)
 num_classes = labels.shape[1]
@@ -162,9 +160,34 @@ num_classes = labels.shape[1]
 model = build_model(input_shape, num_classes)
 model.summary()
 
+print("-------------- FIT -----------------------------")
+
 model.fit(inputs, labels, epochs=10, batch_size=64, validation_split=0.2)
 
+def read_test_data(folder_path):
+    test_data = []
+    for filename in os.listdir(folder_path):
+        if filename.endswith('.inkml'):
+            file_path = os.path.join(folder_path, filename)
+            strokes, _ = parse_inkml(file_path)  # Assuming you have the parse_inkml function defined
+            test_data.append(strokes)
+    
+    # Normalize and pad the test data
+    test_inputs = normalize_and_pad_traces([(strokes, None) for strokes in test_data])
+    test_inputs = np.array([data[0] for data in test_inputs])
+    
+    return test_inputs
+
+test_folder_path = 'test_inputs'
+#all_test_data = read_folder_of_inkml(test_folder_path)
+print("-------------- TEST -----------------------------")
+
+test_inputs = read_test_data(test_folder_path)
+
+# Evaluate the model on the test inputs
+test_loss, test_accuracy = model.evaluate(test_inputs)
+print(f"Test Loss: {test_loss}, Test Accuracy: {test_accuracy}")
 
 # Evaluate the model on the test set if you have separated some data for testing
-test_loss, test_accuracy = model.evaluate(test_inputs, test_labels)
-print(f"Test Accuracy: {test_accuracy}")
+#test_loss, test_accuracy = model.evaluate(test_inputs, test_labels)
+#print(f"Test Accuracy: {test_accuracy}")
