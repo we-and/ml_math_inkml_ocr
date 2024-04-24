@@ -2,6 +2,10 @@
 This project focuses on recognizing handwritten mathematical expressions using deep learning techniques. It utilizes the CROHME (Competition on Recognition of Online Handwritten Mathematical Expressions) dataset, which consists of handwritten mathematical expressions in InkML format.
 ## Dataset
 The CROHME dataset is used for training and evaluating the model. The dataset contains handwritten mathematical expressions in InkML format, along with their corresponding LaTeX representations. The InkML files are parsed to extract the stroke information and labels for each expression.
+
+![alt text](https://github.com/we-and/ml_math_inkml_ocr/blob/main/screenshot.png?raw=true)
+
+
 ## Preprocessing
 The preprocessing steps include:
 
