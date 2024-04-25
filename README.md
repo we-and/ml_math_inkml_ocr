@@ -4,6 +4,7 @@ This project focuses on recognizing handwritten mathematical expressions using d
 The CROHME dataset is used for training and evaluating the model. The dataset contains handwritten mathematical expressions in InkML format, along with their corresponding LaTeX representations. The InkML files are parsed to extract the stroke information and labels for each expression.
 
 ![alt text](https://github.com/we-and/ml_math_inkml_ocr/blob/main/screenshot.png?raw=true)
+![alt text](https://github.com/we-and/ml_math_inkml_ocr/blob/main/test_inputs_png/129_em_542.png?raw=true)
 
 
 ## Preprocessing
