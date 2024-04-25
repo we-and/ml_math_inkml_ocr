@@ -302,9 +302,14 @@ def encode_labels(padded_data):
 
 # Optional: Decode predictions if needed
 predicted_classes = np.argmax(predictions, axis=1)
-from sklearn.preprocessing import LabelEncoder
-label_encoder = LabelEncoder()
+
+import pickle
+# Loading the encoder
+with open('label_encoder.pkl', 'rb') as file:
+    label_encoder = pickle.load(file)
+
 predicted_labels = label_encoder.inverse_transform(predicted_classes)
+
 
 # Print or process your predictions
 print(predicted_labels)

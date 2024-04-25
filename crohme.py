@@ -170,6 +170,13 @@ with open('model_config.json', 'w') as f:
 
 
 
+print("-------------- SAVE ENCODER -----------------------------")
+import pickle
+
+# Saving the encoder
+with open('label_encoder.pkl', 'wb') as file:
+    pickle.dump(label_encoder, file)
+
 import matplotlib.pyplot as plt
 print("-------------- PLOT HISTORY -----------------------------")
 
@@ -183,7 +190,7 @@ plt.xlabel('Epoch')
 plt.legend(loc='upper left')
 plt.grid(True)
 plt.savefig('model_accuracy.png')  # Save the figure
-plt.show()
+#plt.show()
 
 
 # Plot training & validation loss values
@@ -196,7 +203,7 @@ plt.xlabel('Epoch')
 plt.legend(loc='upper right')
 plt.grid(True)
 plt.savefig('model_loss.png')  # Save the figure
-plt.show()
+#plt.show()
 
 test_folder_path = 'test_inputs'
 #all_test_data = read_folder_of_inkml(test_folder_path)
